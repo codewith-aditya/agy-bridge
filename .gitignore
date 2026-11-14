@@ -1,14 +1,17 @@
-# Build output
-bin/
-agy-bridge
-agy-bridge.exe
-agy-bridge.new
-agy-bridge-*
-!agy-bridge.example
+# Build output (root-anchored: keep cmd/agy-bridge tracked)
+/bin/
+/agy-bridge
+/agy-bridge.exe
+/agy-bridge.new
+/agy-bridge-linux-*
+/agy-bridge-darwin-*
+/agy-bridge-windows-*
+/agy-bridge-*.zip
 
 # Local configuration and secrets
 .env
 *.env
+!.env.example
 .idesecret
 agy-bridge.env
 
@@ -17,10 +20,11 @@ agy-bridge.env
 *.out
 /tmp-*
 
-*.zip
-
 # Editors and OS noise
 .idea/
 .vscode/
 .DS_Store
 Thumbs.db
+
+# older local build names
+/agy-bridge-mac-*
