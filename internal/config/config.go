@@ -33,6 +33,9 @@ type Config struct {
 	// CaptureCatalog dumps the raw fetchAvailableModels response, so the model
 	// catalog schema can be extended safely instead of guessed.
 	CaptureCatalog bool
+	// NativeModels are model IDs served by Google itself, forwarded with the
+	// caller's own OAuth token. Everything else goes to the upstream.
+	NativeModels []string
 	// CatalogExtra lists model IDs to force into the picker even when the
 	// account tier does not return them, as "id|Display Name,id2|Name2".
 	CatalogExtra string
@@ -64,6 +67,7 @@ func Load() Config {
 		CaptureCatalog:  envStr("CAPTURE_CATALOG", "") != "",
 		CatalogLabels:   envStr("CATALOG_LABELS", "") != "",
 		CatalogExtra:    envStr("CATALOG_EXTRA", ""),
+		NativeModels:    splitList(envStr("NATIVE_MODELS", "")),
 		CatalogLabelTemplate: func() string {
 			if envStr("CATALOG_LABELS", "") == "" {
 				return ""
@@ -72,6 +76,32 @@ func Load() Config {
 		}(),
 		DropThoughts: envStr("DROP_THOUGHTS", "") != "",
 	}
+}
+
+// IsNative reports whether this model ID should be served by Google instead of
+// the configured upstream. Matching is exact, or by prefix when the configured
+// entry ends with "*".
+func (c Config) IsNative(modelID string) bool {
+	modelID = strings.TrimPrefix(modelID, "models/")
+	for _, p := range c.NativeModels {
+		if p == modelID {
+			return true
+		}
+		if strings.HasSuffix(p, "*") && strings.HasPrefix(modelID, strings.TrimSuffix(p, "*")) {
+			return true
+		}
+	}
+	return false
+}
+
+func splitList(s string) []string {
+	var out []string
+	for _, p := range strings.Split(s, ",") {
+		if p = strings.TrimSpace(p); p != "" {
+			out = append(out, p)
+		}
+	}
+	return out
 }
 
 // ResolveModel maps a Gemini model ID to its configured upstream model.

@@ -46,6 +46,13 @@ func (s *Server) handleCloudGenerate(w http.ResponseWriter, r *http.Request, met
 		return
 	}
 
+	if s.Cfg.IsNative(ce.Model) {
+		s.seen.record(ce.Model, "google-native", "v1internal")
+		logf("[native] %s -> google", ce.Model)
+		s.forwardToGoogle(w, r, raw)
+		return
+	}
+
 	model := s.Cfg.ResolveModel(ce.Model)
 	s.seen.record(ce.Model, model, "v1internal")
 	g.Effort = translate.EffortFromModel(ce.Model)
@@ -246,7 +253,13 @@ func (s *Server) forwardToGoogle(w http.ResponseWriter, r *http.Request, raw []b
 		tpl := s.Cfg.CatalogLabelTemplate
 		extras := ParseExtras(s.Cfg.CatalogExtra)
 		if tpl != "" || len(extras) > 0 {
-			body = rewriteCatalog(body, s.Cfg.ResolveModel, tpl, extras)
+			label := func(id string) string {
+				if s.Cfg.IsNative(id) {
+					return "" // served by Google: keep the original name
+				}
+				return s.Cfg.ResolveModel(id)
+			}
+			body = rewriteCatalog(body, label, tpl, extras)
 		}
 	}
 	logf("[passthrough] %s -> %d (%d bytes)", r.URL.Path, resp.StatusCode, len(body))
