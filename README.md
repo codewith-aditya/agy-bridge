@@ -63,7 +63,34 @@ UPSTREAM_BASE=https://api.openai.com/v1 UPSTREAM_KEY=sk-... DEFAULT_MODEL=gpt-4o
 GOOGLE_GEMINI_BASE_URL=http://127.0.0.1:8198 GEMINI_API_KEY=anything agy
 ```
 
-### Windows
+### Windows in four steps
+
+No Go toolchain needed — use the prebuilt binary.
+
+```powershell
+# 1. download
+curl.exe -L -o "$env:USERPROFILE\Downloads\agy-bridge.exe" `
+  https://github.com/codewith-aditya/agy-bridge/releases/download/v0.1.0/agy-bridge-windows-amd64.exe
+
+# 2. move it somewhere permanent
+mkdir "$env:USERPROFILE\tools\agy-bridge" -Force
+move "$env:USERPROFILE\Downloads\agy-bridge.exe" "$env:USERPROFILE\tools\agy-bridge\"
+```
+
+```powershell
+# 3. run it in its own terminal
+$env:UPSTREAM_BASE="https://api.openai.com/v1"
+$env:UPSTREAM_KEY="sk-..."
+$env:DEFAULT_MODEL="gpt-4o-mini"
+& "$env:USERPROFILE\tools\agy-bridge\agy-bridge.exe"
+```
+
+```json
+// 4. %APPDATA%\Antigravity IDE\User\settings.json
+{ "jetski.cloudCodeUrl": "http://127.0.0.1:8198" }
+```
+
+Restart the IDE. Building from source instead:
 
 `make` is not available on Windows, so build directly and run it in its own terminal:
 
