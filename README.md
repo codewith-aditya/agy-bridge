@@ -126,6 +126,22 @@ part with a placeholder `thoughtSignature`, which Gemini 3 era clients round-tri
 - Attachments are supported as inline images only; other media passes through untouched.
 - Vendor-specific fields (safety settings, cached content, grounding) are ignored.
 
+## Documentation
+
+Full guides live in [docs/](docs/README.md):
+
+| Page | What it covers |
+| --- | --- |
+| [Getting started](docs/getting-started.md) | Install, first run, CLI and IDE wiring. |
+| [Configuration](docs/configuration.md) | Every environment variable, model mapping, key strategy. |
+| [Architecture](docs/architecture.md) | Package layout and request lifecycle. |
+| [Gemini v1beta protocol](docs/protocols/gemini-v1beta.md) | The CLI surface, request and response shapes. |
+| [Cloud Code protocol](docs/protocols/cloud-code-v1internal.md) | The IDE envelope, passthrough and the hidden setting. |
+| [Deployment](docs/deployment.md) | systemd, nginx, Docker, hardening checklist. |
+| [Troubleshooting](docs/troubleshooting.md) | Symptom → cause → fix. |
+| [FAQ](docs/faq.md) | Short answers to recurring questions. |
+| [Internals](docs/ANTIGRAVITY-internals.md) | Reverse-engineering notes from the binaries. |
+
 ## Development
 
 ```bash
@@ -135,8 +151,7 @@ make build    # ./bin/agy-bridge
 make cross    # linux/amd64, windows/amd64, darwin/arm64
 ```
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for the project layout and review process, and
-[docs/ANTIGRAVITY-internals.md](docs/ANTIGRAVITY-internals.md) for the reverse-engineering notes.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the project layout and review process.
 
 ## License
 
