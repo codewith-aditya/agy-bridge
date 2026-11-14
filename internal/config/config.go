@@ -54,9 +54,35 @@ func Load() Config {
 // ResolveModel maps a Gemini model ID to its configured upstream model.
 func (c Config) ResolveModel(geminiModel string) string {
 	geminiModel = strings.TrimPrefix(geminiModel, "models/")
+
 	if v, ok := c.ModelMap[geminiModel]; ok {
 		return v
 	}
+
+	// Antigravity appends effort and route suffixes that change between
+	// releases: gemini-3.8-flash-high, gemini-3.5-flash-lite, gemini-3.1-pro-preview.
+	// Strip them and retry so a family mapping keeps working.
+	for _, suffix := range []string{"-high", "-medium", "-low", "-lite", "-preview", "-thinking", "-1p", "-thoughts"} {
+		if trimmed := strings.TrimSuffix(geminiModel, suffix); trimmed != geminiModel {
+			if v, ok := c.ModelMap[trimmed]; ok {
+				return v
+			}
+			geminiModel = trimmed
+		}
+	}
+
+	// Longest configured key that prefixes the requested ID wins, so
+	// "gemini-3.8-flash" still covers "gemini-3.8-flash-experimental".
+	bestKey, bestVal := "", ""
+	for k, v := range c.ModelMap {
+		if strings.HasPrefix(geminiModel, k) && len(k) > len(bestKey) {
+			bestKey, bestVal = k, v
+		}
+	}
+	if bestKey != "" {
+		return bestVal
+	}
+
 	if c.DefaultModel != "" {
 		return c.DefaultModel
 	}

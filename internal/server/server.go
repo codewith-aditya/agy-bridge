@@ -46,6 +46,14 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handle(w http.ResponseWriter, r *http.Request) {
 	path := r.URL.Path
 
+	// Cloud Code RPCs that use a slash instead of a colon, e.g.
+	// GET /v1internal/cascadeNuxes. These are account/UI calls: forward them.
+	if i := strings.Index(path, "/v1internal/"); i >= 0 {
+		raw, _ := readAll(r)
+		s.forwardToGoogle(w, r, raw)
+		return
+	}
+
 	// Cloud Code API, used by the Antigravity IDE and its hub.
 	if i := strings.Index(path, "v1internal:"); i >= 0 {
 		if r.Method != http.MethodPost {

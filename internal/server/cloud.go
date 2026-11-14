@@ -151,7 +151,15 @@ func (s *Server) forwardToGoogle(w http.ResponseWriter, r *http.Request, raw []b
 		target += "?" + r.URL.RawQuery
 	}
 
-	req, err := http.NewRequest(http.MethodPost, target, bytes.NewReader(raw))
+	method := r.Method
+	if method == "" {
+		method = http.MethodPost
+	}
+	var bodyReader io.Reader
+	if len(raw) > 0 {
+		bodyReader = bytes.NewReader(raw)
+	}
+	req, err := http.NewRequest(method, target, bodyReader)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, err.Error(), "INTERNAL")
 		return
