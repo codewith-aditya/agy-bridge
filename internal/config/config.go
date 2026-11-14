@@ -1,0 +1,91 @@
+// Package config loads agy-bridge settings from the environment.
+package config
+
+import (
+	"os"
+	"strconv"
+	"strings"
+)
+
+// Config holds every tunable the bridge understands.
+type Config struct {
+	// Listen is the address the bridge binds to.
+	Listen string
+	// UpstreamBase is the OpenAI-compatible base URL, without a trailing slash.
+	UpstreamBase string
+	// UpstreamKey is used for the public Gemini route when set. When empty the
+	// caller's own key (GEMINI_API_KEY / x-goog-api-key) is used instead.
+	UpstreamKey string
+	// CloudServerKey is used for the Cloud Code route, whose caller presents a
+	// Google OAuth bearer that is not a usable upstream credential.
+	CloudServerKey string
+	// DefaultModel is the upstream model every unrecognised Gemini model maps to.
+	DefaultModel string
+	// MaxOutputTokens clamps maxOutputTokens. Antigravity asks for 65535, which
+	// some upstreams reject. 0 disables the clamp.
+	MaxOutputTokens int
+	// ModelMap maps Gemini model IDs to upstream model IDs.
+	ModelMap map[string]string
+	// Debug dumps the last request bodies to /tmp.
+	Debug bool
+	// PassthroughBase is the Google Cloud Code host used for non-generation RPCs.
+	PassthroughBase string
+}
+
+// Load reads the environment into a Config.
+func Load() Config {
+	return Config{
+		Listen:          envStr("LISTEN", "127.0.0.1:8198"),
+		UpstreamBase:    strings.TrimRight(envStr("UPSTREAM_BASE", "https://modelrouter.in/v1"), "/"),
+		UpstreamKey:     envStr("UPSTREAM_KEY", ""),
+		CloudServerKey:  envStr("CLOUD_SERVER_KEY", ""),
+		DefaultModel:    envStr("DEFAULT_MODEL", ""),
+		MaxOutputTokens: envInt("MAX_OUTPUT_TOKENS", 32000),
+		ModelMap:        ParseModelMap(envStr("MODEL_MAP", "")),
+		Debug:           envStr("DEBUG", "") != "",
+		PassthroughBase: strings.TrimRight(envStr("CLOUD_CODE_PASSTHROUGH_BASE", "https://cloudcode-pa.googleapis.com"), "/"),
+	}
+}
+
+// ResolveModel maps a Gemini model ID to its configured upstream model.
+func (c Config) ResolveModel(geminiModel string) string {
+	geminiModel = strings.TrimPrefix(geminiModel, "models/")
+	if v, ok := c.ModelMap[geminiModel]; ok {
+		return v
+	}
+	if c.DefaultModel != "" {
+		return c.DefaultModel
+	}
+	return geminiModel
+}
+
+// ParseModelMap parses "a=x,b=y" into a map.
+func ParseModelMap(s string) map[string]string {
+	m := map[string]string{}
+	for _, pair := range strings.Split(s, ",") {
+		pair = strings.TrimSpace(pair)
+		if pair == "" {
+			continue
+		}
+		if k, v, ok := strings.Cut(pair, "="); ok {
+			m[strings.TrimSpace(k)] = strings.TrimSpace(v)
+		}
+	}
+	return m
+}
+
+func envStr(k, def string) string {
+	if v := os.Getenv(k); v != "" {
+		return v
+	}
+	return def
+}
+
+func envInt(k string, def int) int {
+	if v := os.Getenv(k); v != "" {
+		if n, err := strconv.Atoi(v); err == nil {
+			return n
+		}
+	}
+	return def
+}

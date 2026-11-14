@@ -1,0 +1,26 @@
+# Build output
+bin/
+agy-bridge
+agy-bridge.exe
+agy-bridge.new
+agy-bridge-*
+!agy-bridge.example
+
+# Local configuration and secrets
+.env
+*.env
+.idesecret
+agy-bridge.env
+
+# Test and debug artefacts
+*.log
+*.out
+/tmp-*
+
+*.zip
+
+# Editors and OS noise
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db

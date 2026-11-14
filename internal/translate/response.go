@@ -1,0 +1,202 @@
+package translate
+
+import (
+	"bufio"
+	"bytes"
+	"encoding/base64"
+	"encoding/json"
+	"io"
+	"strings"
+)
+
+// dummySig is a stable placeholder thoughtSignature. Gemini 3 era clients
+// round-trip this field on the next turn and expect it to be present.
+var dummySig = base64.StdEncoding.EncodeToString(bytes.Repeat([]byte{0x5a}, 64))
+
+// FuncCallPart builds a functionCall part with a thought signature attached.
+func FuncCallPart(name, args string) Part {
+	return Part{
+		FunctionCall:     &FunctionCall{Name: name, Args: json.RawMessage(OrEmptyJSON(args))},
+		ThoughtSignature: dummySig,
+	}
+}
+
+// OrEmptyJSON returns valid JSON arguments, falling back to {} or a wrapper.
+func OrEmptyJSON(s string) string {
+	s = strings.TrimSpace(s)
+	if s == "" {
+		return "{}"
+	}
+	if !json.Valid([]byte(s)) {
+		b, _ := json.Marshal(map[string]any{"raw": s})
+		return string(b)
+	}
+	return s
+}
+
+// MapFinish maps an OpenAI finish_reason to a Gemini finishReason.
+func MapFinish(r string) string {
+	switch r {
+	case "length":
+		return "MAX_TOKENS"
+	case "content_filter":
+		return "SAFETY"
+	default:
+		return "STOP"
+	}
+}
+
+// DecodeNonStream converts a non-streaming OpenAI response into a Gemini one.
+func DecodeNonStream(body io.Reader, modelVersion string) (Response, error) {
+	var out struct {
+		Choices []struct {
+			Message struct {
+				Content          string           `json:"content"`
+				ReasoningContent string           `json:"reasoning_content"`
+				ToolCalls        []OpenAIToolCall `json:"tool_calls"`
+			} `json:"message"`
+			FinishReason string `json:"finish_reason"`
+		} `json:"choices"`
+		Usage struct {
+			PromptTokens     int `json:"prompt_tokens"`
+			CompletionTokens int `json:"completion_tokens"`
+			TotalTokens      int `json:"total_tokens"`
+		} `json:"usage"`
+	}
+	if err := json.NewDecoder(body).Decode(&out); err != nil {
+		return Response{}, err
+	}
+
+	gr := Response{ModelVersion: modelVersion, Candidates: []Candidate{{Index: 0}}}
+	if len(out.Choices) > 0 {
+		ch := out.Choices[0]
+		var parts []Part
+		if ch.Message.ReasoningContent != "" {
+			parts = append(parts, Part{Text: ch.Message.ReasoningContent, Thought: true})
+		}
+		if ch.Message.Content != "" {
+			parts = append(parts, Part{Text: ch.Message.Content})
+		}
+		for _, tc := range ch.Message.ToolCalls {
+			parts = append(parts, FuncCallPart(tc.Function.Name, tc.Function.Arguments))
+		}
+		if len(parts) == 0 {
+			parts = append(parts, Part{Text: ""})
+		}
+		gr.Candidates[0].Content = Content{Role: "model", Parts: parts}
+		gr.Candidates[0].FinishReason = MapFinish(ch.FinishReason)
+	}
+	if out.Usage.PromptTokens > 0 {
+		gr.UsageMetadata = &Usage{
+			PromptTokenCount:     out.Usage.PromptTokens,
+			CandidatesTokenCount: out.Usage.CompletionTokens,
+			TotalTokenCount:      out.Usage.TotalTokens,
+		}
+	}
+	return gr, nil
+}
+
+// Accum collects a streamed OpenAI response and emits Gemini chunks.
+type Accum struct {
+	Text      strings.Builder
+	Thought   strings.Builder
+	ToolOrder []int
+	Tools     map[int]*OpenAIToolCall
+	Usage     *Usage
+	Finish    string
+}
+
+// NewAccum returns an empty accumulator.
+func NewAccum() *Accum {
+	return &Accum{Tools: map[int]*OpenAIToolCall{}}
+}
+
+// EmitFunc receives converted parts, a finish reason and usage.
+type EmitFunc func(parts []Part, finish string, usage *Usage)
+
+// PumpStream reads an OpenAI SSE stream and calls emit for every delta.
+func PumpStream(body io.Reader, acc *Accum, emit EmitFunc) error {
+	scanner := bufio.NewScanner(body)
+	scanner.Buffer(make([]byte, 0, 64*1024), 8*1024*1024)
+
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+		if line == "" || !strings.HasPrefix(line, "data:") {
+			continue
+		}
+		data := strings.TrimSpace(strings.TrimPrefix(line, "data:"))
+		if data == "[DONE]" {
+			break
+		}
+		var chunk struct {
+			Choices []struct {
+				Delta struct {
+					Content          string           `json:"content"`
+					ReasoningContent string           `json:"reasoning_content"`
+					Reasoning        string           `json:"reasoning"`
+					ToolCalls        []OpenAIToolCall `json:"tool_calls"`
+				} `json:"delta"`
+				FinishReason string `json:"finish_reason"`
+			} `json:"choices"`
+			Usage *struct {
+				PromptTokens     int `json:"prompt_tokens"`
+				CompletionTokens int `json:"completion_tokens"`
+				TotalTokens      int `json:"total_tokens"`
+			} `json:"usage"`
+		}
+		if err := json.Unmarshal([]byte(data), &chunk); err != nil {
+			continue
+		}
+		if chunk.Usage != nil && chunk.Usage.TotalTokens > 0 {
+			acc.Usage = &Usage{
+				PromptTokenCount:     chunk.Usage.PromptTokens,
+				CandidatesTokenCount: chunk.Usage.CompletionTokens,
+				TotalTokenCount:      chunk.Usage.TotalTokens,
+			}
+		}
+		for _, ch := range chunk.Choices {
+			if ch.Delta.ReasoningContent != "" || ch.Delta.Reasoning != "" {
+				t := ch.Delta.ReasoningContent
+				if t == "" {
+					t = ch.Delta.Reasoning
+				}
+				acc.Thought.WriteString(t)
+				emit([]Part{{Text: t, Thought: true}}, "", nil)
+			}
+			if ch.Delta.Content != "" {
+				acc.Text.WriteString(ch.Delta.Content)
+				emit([]Part{{Text: ch.Delta.Content}}, "", nil)
+			}
+			for _, tc := range ch.Delta.ToolCalls {
+				idx := tc.Index
+				cur, ok := acc.Tools[idx]
+				if !ok {
+					cur = &OpenAIToolCall{Index: idx, Type: "function"}
+					acc.Tools[idx] = cur
+					acc.ToolOrder = append(acc.ToolOrder, idx)
+				}
+				if tc.ID != "" {
+					cur.ID = tc.ID
+				}
+				if tc.Function.Name != "" {
+					cur.Function.Name += tc.Function.Name
+				}
+				cur.Function.Arguments += tc.Function.Arguments
+			}
+			if ch.FinishReason != "" {
+				acc.Finish = ch.FinishReason
+			}
+		}
+	}
+	return scanner.Err()
+}
+
+// ToolParts renders the accumulated tool calls as Gemini parts.
+func (a *Accum) ToolParts() []Part {
+	var parts []Part
+	for _, idx := range a.ToolOrder {
+		tc := a.Tools[idx]
+		parts = append(parts, FuncCallPart(tc.Function.Name, tc.Function.Arguments))
+	}
+	return parts
+}

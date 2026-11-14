@@ -1,0 +1,62 @@
+name: Bug report
+description: Something in the bridge does not behave as documented
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Redact credentials before posting. Never paste an API key or an OAuth token.
+  - type: dropdown
+    id: surface
+    attributes:
+      label: Antigravity surface
+      options:
+        - CLI (agy)
+        - IDE
+        - Hub / language server
+        - Self-hosted client
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Output of `agy --version` and the agy-bridge version flag.
+    validations:
+      required: true
+  - type: input
+    id: os
+    attributes:
+      label: Operating system
+      placeholder: Windows 11, Ubuntu 24.04, macOS 15.2
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. export GOOGLE_GEMINI_BASE_URL=...
+        2. agy -p "create z.txt containing hello"
+        3. ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behaviour
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behaviour
+      description: Include the bridge log line and the exact error text.
+    validations:
+      required: true
+  - type: textarea
+    id: config
+    attributes:
+      label: Configuration
+      description: Relevant environment variables, with values redacted.
+      render: shell
