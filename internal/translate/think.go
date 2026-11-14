@@ -3,31 +3,40 @@ package translate
 import "strings"
 
 const (
-	thinkOpen  = "<think>"
-	thinkClose = "</think>"
+	thinkOpen  = "<" + "think" + ">"
+	thinkClose = "<" + "/" + "think" + ">"
 )
 
-// StripThink removes <think>…</think> blocks from a complete string. Some
-// chat templates inline chain-of-thought into the content stream instead of
-// using a separate reasoning field.
+// StripThink removes think blocks from a complete string. Kept for callers that
+// only want the visible answer.
 func StripThink(s string) string {
+	visible, _ := SplitThink(s)
+	return visible
+}
+
+// SplitThink separates a complete string into visible text and thinking text.
+func SplitThink(s string) (visible, thought string) {
+	var v, th strings.Builder
 	for {
 		i := strings.Index(s, thinkOpen)
 		if i < 0 {
-			return s
+			v.WriteString(s)
+			return v.String(), th.String()
 		}
-		j := strings.Index(s[i:], thinkClose)
+		v.WriteString(s[:i])
+		rest := s[i+len(thinkOpen):]
+		j := strings.Index(rest, thinkClose)
 		if j < 0 {
-			// Unterminated block: drop the rest.
-			return s[:i]
+			th.WriteString(rest)
+			return v.String(), th.String()
 		}
-		s = s[:i] + s[i+j+len(thinkClose):]
+		th.WriteString(rest[:j])
+		s = rest[j+len(thinkClose):]
 	}
 }
 
-// ThinkFilter strips inline <think> blocks from a streamed content feed, where
-// a tag can be split across chunks. Call Write for every delta and Flush at the
-// end; both return text that is safe to forward to the client.
+// ThinkFilter splits a streamed content feed into visible text and thinking
+// text, where a tag can be split across chunks.
 type ThinkFilter struct {
 	inThink bool
 	buf     string
@@ -36,25 +45,25 @@ type ThinkFilter struct {
 // NewThinkFilter returns an empty filter.
 func NewThinkFilter() *ThinkFilter { return &ThinkFilter{} }
 
-// Write consumes one delta and returns the text that may be emitted.
-func (f *ThinkFilter) Write(chunk string) string {
+// Write consumes one delta and returns text that may be emitted, split into the
+// visible answer and the thinking block.
+func (f *ThinkFilter) Write(chunk string) (visible, thought string) {
 	if chunk == "" {
-		return ""
+		return "", ""
 	}
 	f.buf += chunk
 
-	var out strings.Builder
+	var v, th strings.Builder
 	for {
 		if !f.inThink {
 			i := strings.Index(f.buf, thinkOpen)
 			if i < 0 {
-				// Hold back a possible partial "<think" prefix.
 				hold := partialSuffix(f.buf, thinkOpen)
-				out.WriteString(f.buf[:len(f.buf)-hold])
+				v.WriteString(f.buf[:len(f.buf)-hold])
 				f.buf = f.buf[len(f.buf)-hold:]
-				return out.String()
+				return v.String(), th.String()
 			}
-			out.WriteString(f.buf[:i])
+			v.WriteString(f.buf[:i])
 			f.buf = f.buf[i+len(thinkOpen):]
 			f.inThink = true
 			continue
@@ -62,25 +71,27 @@ func (f *ThinkFilter) Write(chunk string) string {
 
 		j := strings.Index(f.buf, thinkClose)
 		if j < 0 {
-			// Still thinking: keep only a tail that could hold a partial close tag.
 			hold := partialSuffix(f.buf, thinkClose)
+			if len(f.buf) > hold {
+				th.WriteString(f.buf[:len(f.buf)-hold])
+			}
 			f.buf = f.buf[len(f.buf)-hold:]
-			return out.String()
+			return v.String(), th.String()
 		}
+		th.WriteString(f.buf[:j])
 		f.buf = f.buf[j+len(thinkClose):]
 		f.inThink = false
 	}
 }
 
 // Flush returns any buffered text once the stream has ended.
-func (f *ThinkFilter) Flush() string {
+func (f *ThinkFilter) Flush() (visible, thought string) {
 	rest := f.buf
 	f.buf = ""
 	if f.inThink {
-		// Unterminated think block at EOF: nothing safe to emit.
-		return ""
+		return "", rest
 	}
-	return rest
+	return rest, ""
 }
 
 // partialSuffix returns the length of the longest suffix of s that is a proper

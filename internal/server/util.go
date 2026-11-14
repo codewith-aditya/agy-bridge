@@ -16,15 +16,22 @@ func readAll(r *http.Request) ([]byte, error) {
 
 func equalFold(a, b string) bool { return strings.EqualFold(a, b) }
 
-// stripInlineThink removes  thinking blocks that some chat templates inline in
-// the content stream, keeping the visible answer only.
-func stripInlineThink(tf *translate.ThinkFilter, parts []translate.Part) []translate.Part {
+// splitInlineThink separates <think> blocks that some chat templates inline in
+// the content stream, so they render as the client's thinking panel instead of
+// as answer text.
+func splitInlineThink(tf *translate.ThinkFilter, parts []translate.Part) []translate.Part {
 	out := make([]translate.Part, 0, len(parts))
 	for _, p := range parts {
 		if p.Text != "" && !p.Thought {
-			if p.Text = tf.Write(p.Text); p.Text == "" {
-				continue
+			visible, thought := tf.Write(p.Text)
+			if thought != "" {
+				out = append(out, translate.Part{Text: thought, Thought: true})
 			}
+			if visible != "" {
+				p.Text = visible
+				out = append(out, p)
+			}
+			continue
 		}
 		out = append(out, p)
 	}

@@ -101,8 +101,12 @@ func DecodeNonStream(body io.Reader, modelVersion string, dropThoughts bool) (Re
 		if reasoning != "" && !dropThoughts {
 			parts = append(parts, Part{Text: reasoning, Thought: true})
 		}
-		if visible := StripThink(ch.Message.Content); visible != "" {
-			parts = append(parts, Part{Text: visible})
+		visibleText, inlineThinking := SplitThink(ch.Message.Content)
+		if inlineThinking != "" && !dropThoughts {
+			parts = append(parts, Part{Text: inlineThinking, Thought: true})
+		}
+		if visibleText != "" {
+			parts = append(parts, Part{Text: visibleText})
 		}
 		for _, tc := range ch.Message.ToolCalls {
 			parts = append(parts, FuncCallPart(tc.Function.Name, tc.Function.Arguments))

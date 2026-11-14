@@ -137,7 +137,7 @@ func (s *Server) handleCloudGenerate(w http.ResponseWriter, r *http.Request, met
 		if firstAt.IsZero() && len(parts) > 0 {
 			firstAt = time.Now()
 		}
-		frame, ok := sseFrame(stripInlineThink(tf, parts), finish, usage, ce.Model, wrap)
+		frame, ok := sseFrame(splitInlineThink(tf, parts), finish, usage, ce.Model, wrap)
 		if !ok {
 			return
 		}
@@ -149,8 +149,15 @@ func (s *Server) handleCloudGenerate(w http.ResponseWriter, r *http.Request, met
 	if err := translate.PumpStream(resp.Body, acc, emit); err != nil {
 		logf("[cloud] stream error: %v", err)
 	}
-	if rest := tf.Flush(); rest != "" {
-		if frame, ok := sseFrame([]translate.Part{{Text: rest}}, "", nil, ce.Model, wrap); ok {
+	if visible, thought := tf.Flush(); visible != "" || thought != "" {
+		var tail []translate.Part
+		if thought != "" {
+			tail = append(tail, translate.Part{Text: thought, Thought: true})
+		}
+		if visible != "" {
+			tail = append(tail, translate.Part{Text: visible})
+		}
+		if frame, ok := sseFrame(tail, "", nil, ce.Model, wrap); ok {
 			w.Write(frame)
 			if flusher != nil {
 				flusher.Flush()

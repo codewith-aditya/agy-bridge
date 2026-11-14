@@ -34,25 +34,36 @@ func TestThinkFilterAcrossChunks(t *testing.T) {
 	lt := string(rune(60))
 	chunks := []string{"Hi " + lt + "th", "ink>the user said", " hi" + lt + "/thi", "nk> there"}
 	f := NewThinkFilter()
-	var out strings.Builder
+	var out, thoughts strings.Builder
 	for _, ch := range chunks {
-		out.WriteString(f.Write(ch))
+		v, th := f.Write(ch)
+		out.WriteString(v)
+		thoughts.WriteString(th)
 	}
-	out.WriteString(f.Flush())
+	v, th := f.Flush()
+	out.WriteString(v)
+	thoughts.WriteString(th)
 
 	if got := out.String(); got != "Hi  there" {
-		t.Fatalf("filtered stream = %q, want %q", got, "Hi  there")
+		t.Fatalf("visible stream = %q, want %q", got, "Hi  there")
+	}
+	if got := thoughts.String(); got != "the user said hi" {
+		t.Fatalf("thinking stream = %q, want %q", got, "the user said hi")
 	}
 }
 
 func TestThinkFilterUnterminated(t *testing.T) {
 	o, _ := tags()
 	f := NewThinkFilter()
-	var out strings.Builder
-	out.WriteString(f.Write("answer " + o + "still going"))
-	out.WriteString(f.Flush())
+	v, th := f.Write("answer " + o + "still going")
+	v2, th2 := f.Flush()
+	visible := v + v2
+	thought := th + th2
 
-	if got := out.String(); got != "answer " {
-		t.Fatalf("got %q, want %q", got, "answer ")
+	if visible != "answer " {
+		t.Fatalf("visible = %q, want %q", visible, "answer ")
+	}
+	if thought != "still going" {
+		t.Fatalf("thought = %q, want %q", thought, "still going")
 	}
 }

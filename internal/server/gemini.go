@@ -139,7 +139,7 @@ func (s *Server) handleGemini(w http.ResponseWriter, r *http.Request) {
 		if firstAt.IsZero() && len(parts) > 0 {
 			firstAt = time.Now()
 		}
-		frame, ok := sseFrame(stripInlineThink(tf, parts), finish, usage, modelPart, nil)
+		frame, ok := sseFrame(splitInlineThink(tf, parts), finish, usage, modelPart, nil)
 		if !ok {
 			return
 		}
@@ -151,8 +151,15 @@ func (s *Server) handleGemini(w http.ResponseWriter, r *http.Request) {
 	if err := translate.PumpStream(resp.Body, acc, emit); err != nil {
 		logf("stream error: %v", err)
 	}
-	if rest := tf.Flush(); rest != "" {
-		if frame, ok := sseFrame([]translate.Part{{Text: rest}}, "", nil, modelPart, nil); ok {
+	if visible, thought := tf.Flush(); visible != "" || thought != "" {
+		var tail []translate.Part
+		if thought != "" {
+			tail = append(tail, translate.Part{Text: thought, Thought: true})
+		}
+		if visible != "" {
+			tail = append(tail, translate.Part{Text: visible})
+		}
+		if frame, ok := sseFrame(tail, "", nil, modelPart, nil); ok {
 			w.Write(frame)
 			if flusher != nil {
 				flusher.Flush()
