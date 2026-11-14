@@ -33,6 +33,13 @@ type Config struct {
 	// CaptureCatalog dumps the raw fetchAvailableModels response, so the model
 	// catalog schema can be extended safely instead of guessed.
 	CaptureCatalog bool
+	// CatalogLabelTemplate renders the picker label. "{name}" is the original
+	// display name, "{model}" the upstream model this deployment resolves to.
+	// Empty disables relabelling.
+	CatalogLabelTemplate string
+	// CatalogLabels rewrites model display names in the IDE catalog to show the
+	// upstream model that actually serves them.
+	CatalogLabels bool
 	// DropThoughts stops forwarding reasoning deltas. Reasoning models often
 	// narrate raw JSON tool syntax, which renders as noise in the client's
 	// thinking panel.
@@ -52,7 +59,14 @@ func Load() Config {
 		Debug:           envStr("DEBUG", "") != "",
 		PassthroughBase: strings.TrimRight(envStr("CLOUD_CODE_PASSTHROUGH_BASE", "https://cloudcode-pa.googleapis.com"), "/"),
 		CaptureCatalog:  envStr("CAPTURE_CATALOG", "") != "",
-		DropThoughts:    envStr("DROP_THOUGHTS", "") != "",
+		CatalogLabels:   envStr("CATALOG_LABELS", "") != "",
+		CatalogLabelTemplate: func() string {
+			if envStr("CATALOG_LABELS", "") == "" {
+				return ""
+			}
+			return envStr("CATALOG_LABEL_TEMPLATE", "{name} · {model}")
+		}(),
+		DropThoughts: envStr("DROP_THOUGHTS", "") != "",
 	}
 }
 

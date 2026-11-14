@@ -234,9 +234,18 @@ func (s *Server) forwardToGoogle(w http.ResponseWriter, r *http.Request, raw []b
 		}
 	}
 	body, _ := io.ReadAll(resp.Body)
-	if s.Cfg.CaptureCatalog && strings.Contains(r.URL.Path, "fetchAvailableModels") {
-		os.WriteFile("/tmp/agy-bridge-catalog.json", body, 0o644)
-		logf("[catalog] captured %d bytes -> /tmp/agy-bridge-catalog.json", len(body))
+	if s.Cfg.CaptureCatalog && len(raw) > 0 && len(raw) < 262144 {
+		name := strings.NewReplacer("/", "_", ":", "_").Replace(r.URL.Path)
+		os.WriteFile("/tmp/agy-bridge-pt"+name+".json", raw, 0o600)
+	}
+	if strings.Contains(r.URL.Path, "fetchAvailableModels") {
+		if s.Cfg.CaptureCatalog {
+			os.WriteFile("/tmp/agy-bridge-catalog.json", body, 0o644)
+			logf("[catalog] captured %d bytes -> /tmp/agy-bridge-catalog.json", len(body))
+		}
+		if tpl := s.Cfg.CatalogLabelTemplate; tpl != "" {
+			body = relabelCatalog(body, s.Cfg.ResolveModel, tpl)
+		}
 	}
 	logf("[passthrough] %s -> %d (%d bytes)", r.URL.Path, resp.StatusCode, len(body))
 	w.WriteHeader(resp.StatusCode)
