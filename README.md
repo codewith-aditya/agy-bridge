@@ -13,6 +13,11 @@ Antigravity CLI ──Gemini v1beta──┐
 Antigravity IDE ──Cloud Code─────┘
 ```
 
+![Antigravity IDE editing a project while the model picker reports which upstream is serving it](docs/images/antigravity-ide.png)
+
+*Antigravity IDE, mid-task. The picker at the bottom reads `Claude Opus 4.6 (Thinking) · DeepSeek-V4.1-Flash-1017`:
+the client thinks it is talking to Google, while every generated token comes from the configured upstream.*
+
 ## Why
 
 Antigravity's agent loop is good; its model list is not yours. Pointing the app at your own gateway
