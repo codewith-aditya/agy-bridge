@@ -37,15 +37,17 @@ func OrEmptyJSON(s string) string {
 // EffortFromModel extracts the reasoning effort Antigravity encodes in the
 // model ID, e.g. gemini-3.8-flash-high -> "high", gemini-3.1-pro-low -> "low".
 func EffortFromModel(modelID string) string {
-	for _, suffix := range []string{"-xhigh", "-max", "-high"} {
-		if strings.HasSuffix(modelID, suffix) {
-			return "high"
-		}
-	}
-	if strings.HasSuffix(modelID, "-medium") {
-		return "medium"
-	}
-	if strings.HasSuffix(modelID, "-low") {
+	switch {
+	case strings.HasSuffix(modelID, "-max"):
+		return "max"
+	case strings.HasSuffix(modelID, "-xhigh"):
+		return "xhigh"
+	case strings.HasSuffix(modelID, "-high"):
+		return "high"
+	case strings.HasSuffix(modelID, "-medium"):
+		// Providers reject "medium"; the nearest accepted value is high.
+		return "high"
+	case strings.HasSuffix(modelID, "-low"):
 		return "low"
 	}
 	return ""

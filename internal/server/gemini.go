@@ -85,6 +85,24 @@ func (s *Server) handleGemini(w http.ResponseWriter, r *http.Request) {
 	}
 	defer resp.Body.Close()
 
+	if resp.StatusCode == http.StatusBadRequest {
+		b, _ := io.ReadAll(io.LimitReader(resp.Body, 8192))
+		if bytes.Contains(b, []byte("reasoning_effort")) {
+			resp.Body.Close()
+			if retry, err := s.retryWithoutEffort(key, payload, stream); err == nil {
+				resp = retry
+				logf("upstream rejected reasoning_effort; retried without it")
+			} else {
+				writeError(w, http.StatusBadGateway, "upstream: "+err.Error(), "UNAVAILABLE")
+				return
+			}
+		} else {
+			resp.Body.Close()
+			writeError(w, http.StatusBadRequest, string(b), "INVALID_ARGUMENT")
+			return
+		}
+	}
+
 	if resp.StatusCode >= 400 {
 		b, _ := io.ReadAll(io.LimitReader(resp.Body, 8192))
 		logf("upstream %d: %s", resp.StatusCode, truncate(string(b), 500))

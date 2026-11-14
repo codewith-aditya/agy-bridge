@@ -84,6 +84,24 @@ func (s *Server) handleCloudGenerate(w http.ResponseWriter, r *http.Request, met
 	}
 	defer resp.Body.Close()
 
+	if resp.StatusCode == http.StatusBadRequest {
+		b, _ := io.ReadAll(io.LimitReader(resp.Body, 8192))
+		if bytes.Contains(b, []byte("reasoning_effort")) {
+			resp.Body.Close()
+			retry, rerr := s.retryWithoutEffort(key, payload, stream)
+			if rerr != nil {
+				writeError(w, http.StatusBadGateway, "upstream: "+rerr.Error(), "UNAVAILABLE")
+				return
+			}
+			resp = retry
+			logf("[cloud] upstream rejected reasoning_effort; retried without it")
+		} else {
+			resp.Body.Close()
+			writeError(w, http.StatusBadRequest, string(b), "INVALID_ARGUMENT")
+			return
+		}
+	}
+
 	if resp.StatusCode >= 400 {
 		b, _ := io.ReadAll(io.LimitReader(resp.Body, 8192))
 		logf("[cloud] upstream %d: %s", resp.StatusCode, truncate(string(b), 400))
