@@ -70,6 +70,8 @@ func (s *Server) handleCloudGenerate(w http.ResponseWriter, r *http.Request, met
 		dumpCloud(ce, raw, payload)
 	}
 
+	logf("[cloud] %s model=%s -> upstream (stream=%v)", ce.Model, model, stream)
+
 	start := time.Now()
 	resp, err := s.post(key, payload, stream)
 	if err != nil {
@@ -175,6 +177,7 @@ func (s *Server) forwardToGoogle(w http.ResponseWriter, r *http.Request, raw []b
 			w.Header().Add(k, v)
 		}
 	}
+	logf("[passthrough] %s -> %d", r.URL.Path, resp.StatusCode)
 	w.WriteHeader(resp.StatusCode)
 	io.Copy(w, resp.Body)
 }
