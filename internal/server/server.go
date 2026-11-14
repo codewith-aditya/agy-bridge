@@ -15,18 +15,20 @@ import (
 type Server struct {
 	Cfg    config.Config
 	Client *http.Client
+	seen   *registry
 }
 
 // New builds a Server. The HTTP client has no overall timeout because a single
 // agent turn can legitimately run for minutes.
 func New(cfg config.Config) *Server {
-	return &Server{Cfg: cfg, Client: &http.Client{Timeout: 0}}
+	return &Server{Cfg: cfg, Client: &http.Client{Timeout: 0}, seen: newRegistry()}
 }
 
 // Handler returns the root mux.
 func (s *Server) Handler() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/health", s.handleHealth)
+	mux.HandleFunc("/seen", s.handleSeen)
 	mux.HandleFunc("/", s.handle)
 	return mux
 }

@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	"os"
+	"strings"
 	"time"
 
 	"agy-bridge/internal/translate"
@@ -45,6 +47,7 @@ func (s *Server) handleCloudGenerate(w http.ResponseWriter, r *http.Request, met
 	}
 
 	model := s.Cfg.ResolveModel(ce.Model)
+	s.seen.record(ce.Model, model, "v1internal")
 	stream := method == "streamGenerateContent"
 
 	// The IDE sends a Google OAuth bearer, which is not a usable upstream key,
@@ -177,7 +180,12 @@ func (s *Server) forwardToGoogle(w http.ResponseWriter, r *http.Request, raw []b
 			w.Header().Add(k, v)
 		}
 	}
-	logf("[passthrough] %s -> %d", r.URL.Path, resp.StatusCode)
+	body, _ := io.ReadAll(resp.Body)
+	if s.Cfg.CaptureCatalog && strings.Contains(r.URL.Path, "fetchAvailableModels") {
+		os.WriteFile("/tmp/agy-bridge-catalog.json", body, 0o644)
+		logf("[catalog] captured %d bytes -> /tmp/agy-bridge-catalog.json", len(body))
+	}
+	logf("[passthrough] %s -> %d (%d bytes)", r.URL.Path, resp.StatusCode, len(body))
 	w.WriteHeader(resp.StatusCode)
-	io.Copy(w, resp.Body)
+	w.Write(body)
 }

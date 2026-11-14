@@ -27,6 +27,7 @@ func (s *Server) handleGemini(w http.ResponseWriter, r *http.Request) {
 	rest := path[i+len("/models/"):]
 	modelPart, action, _ := strings.Cut(rest, ":")
 	model := s.Cfg.ResolveModel(modelPart)
+	s.seen.record(modelPart, model, "v1beta")
 
 	switch action {
 	case "countTokens":

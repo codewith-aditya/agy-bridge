@@ -30,6 +30,9 @@ type Config struct {
 	Debug bool
 	// PassthroughBase is the Google Cloud Code host used for non-generation RPCs.
 	PassthroughBase string
+	// CaptureCatalog dumps the raw fetchAvailableModels response, so the model
+	// catalog schema can be extended safely instead of guessed.
+	CaptureCatalog bool
 }
 
 // Load reads the environment into a Config.
@@ -44,6 +47,7 @@ func Load() Config {
 		ModelMap:        ParseModelMap(envStr("MODEL_MAP", "")),
 		Debug:           envStr("DEBUG", "") != "",
 		PassthroughBase: strings.TrimRight(envStr("CLOUD_CODE_PASSTHROUGH_BASE", "https://cloudcode-pa.googleapis.com"), "/"),
+		CaptureCatalog:  envStr("CAPTURE_CATALOG", "") != "",
 	}
 }
 
