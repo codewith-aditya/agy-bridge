@@ -161,6 +161,10 @@ func BuildRequest(g Request, model string, stream bool, maxOutput int) ([]byte, 
 		body["tool_choice"] = "auto"
 	}
 
+	if g.Effort != "" {
+		body["reasoning_effort"] = g.Effort
+	}
+
 	if gc := g.GenerationConfig; gc != nil {
 		n := gc.MaxOutputTokens
 		if maxOutput > 0 && (n == 0 || n > maxOutput) {

@@ -57,6 +57,7 @@ func (s *Server) handleGemini(w http.ResponseWriter, r *http.Request) {
 	}
 
 	stream := action == "streamGenerateContent"
+	g.Effort = translate.EffortFromModel(modelPart)
 
 	key := s.Cfg.UpstreamKey
 	if key == "" {

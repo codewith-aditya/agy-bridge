@@ -48,6 +48,7 @@ func (s *Server) handleCloudGenerate(w http.ResponseWriter, r *http.Request, met
 
 	model := s.Cfg.ResolveModel(ce.Model)
 	s.seen.record(ce.Model, model, "v1internal")
+	g.Effort = translate.EffortFromModel(ce.Model)
 	stream := method == "streamGenerateContent"
 
 	// The IDE sends a Google OAuth bearer, which is not a usable upstream key,

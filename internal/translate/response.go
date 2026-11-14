@@ -34,6 +34,23 @@ func OrEmptyJSON(s string) string {
 	return s
 }
 
+// EffortFromModel extracts the reasoning effort Antigravity encodes in the
+// model ID, e.g. gemini-3.8-flash-high -> "high", gemini-3.1-pro-low -> "low".
+func EffortFromModel(modelID string) string {
+	for _, suffix := range []string{"-xhigh", "-max", "-high"} {
+		if strings.HasSuffix(modelID, suffix) {
+			return "high"
+		}
+	}
+	if strings.HasSuffix(modelID, "-medium") {
+		return "medium"
+	}
+	if strings.HasSuffix(modelID, "-low") {
+		return "low"
+	}
+	return ""
+}
+
 // MapFinish maps an OpenAI finish_reason to a Gemini finishReason.
 func MapFinish(r string) string {
 	switch r {

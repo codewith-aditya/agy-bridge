@@ -71,6 +71,9 @@ type GenerationConfig struct {
 
 // Request is a Gemini generateContent request body.
 type Request struct {
+	// Effort is derived from the model ID suffix (-low/-medium/-high/-max) and
+	// forwarded as reasoning_effort for providers that understand it.
+	Effort            string            `json:"-"`
 	Contents          []Content         `json:"contents"`
 	SystemInstruction *Content          `json:"systemInstruction,omitempty"`
 	Tools             []Tool            `json:"tools,omitempty"`
