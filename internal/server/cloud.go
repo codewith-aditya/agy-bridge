@@ -131,12 +131,13 @@ func (s *Server) handleCloudGenerate(w http.ResponseWriter, r *http.Request, met
 
 	acc := translate.NewAccum()
 	acc.DropThoughts = s.Cfg.DropThoughts
+	tf := translate.NewThinkFilter()
 	var firstAt time.Time
 	emit := func(parts []translate.Part, finish string, usage *translate.Usage) {
 		if firstAt.IsZero() && len(parts) > 0 {
 			firstAt = time.Now()
 		}
-		frame, ok := sseFrame(parts, finish, usage, ce.Model, wrap)
+		frame, ok := sseFrame(stripInlineThink(tf, parts), finish, usage, ce.Model, wrap)
 		if !ok {
 			return
 		}
@@ -147,6 +148,14 @@ func (s *Server) handleCloudGenerate(w http.ResponseWriter, r *http.Request, met
 	}
 	if err := translate.PumpStream(resp.Body, acc, emit); err != nil {
 		logf("[cloud] stream error: %v", err)
+	}
+	if rest := tf.Flush(); rest != "" {
+		if frame, ok := sseFrame([]translate.Part{{Text: rest}}, "", nil, ce.Model, wrap); ok {
+			w.Write(frame)
+			if flusher != nil {
+				flusher.Flush()
+			}
+		}
 	}
 
 	if toolParts := acc.ToolParts(); len(toolParts) > 0 {

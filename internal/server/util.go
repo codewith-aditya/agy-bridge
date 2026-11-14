@@ -16,6 +16,21 @@ func readAll(r *http.Request) ([]byte, error) {
 
 func equalFold(a, b string) bool { return strings.EqualFold(a, b) }
 
+// stripInlineThink removes  thinking blocks that some chat templates inline in
+// the content stream, keeping the visible answer only.
+func stripInlineThink(tf *translate.ThinkFilter, parts []translate.Part) []translate.Part {
+	out := make([]translate.Part, 0, len(parts))
+	for _, p := range parts {
+		if p.Text != "" && !p.Thought {
+			if p.Text = tf.Write(p.Text); p.Text == "" {
+				continue
+			}
+		}
+		out = append(out, p)
+	}
+	return out
+}
+
 // retryWithoutEffort re-posts the same request with reasoning_effort removed.
 // Some providers reject effort values they do not recognise with a hard 400, and
 // losing the whole turn over a hint is worse than ignoring the hint.

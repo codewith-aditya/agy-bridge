@@ -133,12 +133,13 @@ func (s *Server) handleGemini(w http.ResponseWriter, r *http.Request) {
 
 	acc := translate.NewAccum()
 	acc.DropThoughts = s.Cfg.DropThoughts
+	tf := translate.NewThinkFilter()
 	var firstAt time.Time
 	emit := func(parts []translate.Part, finish string, usage *translate.Usage) {
 		if firstAt.IsZero() && len(parts) > 0 {
 			firstAt = time.Now()
 		}
-		frame, ok := sseFrame(parts, finish, usage, modelPart, nil)
+		frame, ok := sseFrame(stripInlineThink(tf, parts), finish, usage, modelPart, nil)
 		if !ok {
 			return
 		}
@@ -149,6 +150,14 @@ func (s *Server) handleGemini(w http.ResponseWriter, r *http.Request) {
 	}
 	if err := translate.PumpStream(resp.Body, acc, emit); err != nil {
 		logf("stream error: %v", err)
+	}
+	if rest := tf.Flush(); rest != "" {
+		if frame, ok := sseFrame([]translate.Part{{Text: rest}}, "", nil, modelPart, nil); ok {
+			w.Write(frame)
+			if flusher != nil {
+				flusher.Flush()
+			}
+		}
 	}
 
 	if toolParts := acc.ToolParts(); len(toolParts) > 0 {
