@@ -94,7 +94,7 @@ func TestDecodeNonStream(t *testing.T) {
 	         "finish_reason":"tool_calls"}],
 	         "usage":{"prompt_tokens":10,"completion_tokens":5,"total_tokens":15}}`
 
-	gr, err := DecodeNonStream(strings.NewReader(src), "gemini-3-pro-preview")
+	gr, err := DecodeNonStream(strings.NewReader(src), "gemini-3-pro-preview", false)
 	if err != nil {
 		t.Fatalf("DecodeNonStream: %v", err)
 	}

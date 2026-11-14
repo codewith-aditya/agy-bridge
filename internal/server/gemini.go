@@ -97,7 +97,7 @@ func (s *Server) handleGemini(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if !stream {
-		gr, err := translate.DecodeNonStream(resp.Body, modelPart)
+		gr, err := translate.DecodeNonStream(resp.Body, modelPart, s.Cfg.DropThoughts)
 		if err != nil {
 			writeError(w, http.StatusBadGateway, "decode upstream: "+err.Error(), "UNAVAILABLE")
 			return

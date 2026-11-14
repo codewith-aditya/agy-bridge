@@ -64,7 +64,7 @@ func MapFinish(r string) string {
 }
 
 // DecodeNonStream converts a non-streaming OpenAI response into a Gemini one.
-func DecodeNonStream(body io.Reader, modelVersion string) (Response, error) {
+func DecodeNonStream(body io.Reader, modelVersion string, dropThoughts bool) (Response, error) {
 	var out struct {
 		Choices []struct {
 			Message struct {
@@ -91,7 +91,7 @@ func DecodeNonStream(body io.Reader, modelVersion string) (Response, error) {
 	if len(out.Choices) > 0 {
 		ch := out.Choices[0]
 		var parts []Part
-		if ch.Message.ReasoningContent != "" {
+		if ch.Message.ReasoningContent != "" && !dropThoughts {
 			parts = append(parts, Part{Text: ch.Message.ReasoningContent, Thought: true})
 		}
 		if ch.Message.Content != "" {

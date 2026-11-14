@@ -96,7 +96,7 @@ func (s *Server) handleCloudGenerate(w http.ResponseWriter, r *http.Request, met
 	}
 
 	if !stream {
-		gr, err := translate.DecodeNonStream(resp.Body, ce.Model)
+		gr, err := translate.DecodeNonStream(resp.Body, ce.Model, s.Cfg.DropThoughts)
 		if err != nil {
 			writeError(w, http.StatusBadGateway, "decode upstream: "+err.Error(), "UNAVAILABLE")
 			return
