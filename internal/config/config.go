@@ -60,7 +60,7 @@ func Load() Config {
 		UpstreamKey:     envStr("UPSTREAM_KEY", ""),
 		CloudServerKey:  envStr("CLOUD_SERVER_KEY", ""),
 		DefaultModel:    envStr("DEFAULT_MODEL", ""),
-		MaxOutputTokens: envInt("MAX_OUTPUT_TOKENS", 32000),
+		MaxOutputTokens: envInt("MAX_OUTPUT_TOKENS", 100000),
 		ModelMap:        ParseModelMap(envStr("MODEL_MAP", "")),
 		Debug:           envStr("DEBUG", "") != "",
 		PassthroughBase: strings.TrimRight(envStr("CLOUD_CODE_PASSTHROUGH_BASE", "https://cloudcode-pa.googleapis.com"), "/"),

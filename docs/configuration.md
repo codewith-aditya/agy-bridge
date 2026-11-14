@@ -13,7 +13,7 @@ environment is enough.
 | `CLOUD_SERVER_KEY` | *empty* | Key used for the Cloud Code route, whose callers present a Google OAuth bearer. Falls back to `UPSTREAM_KEY`, then the caller's key. |
 | `DEFAULT_MODEL` | *empty* | Upstream model used for any Gemini model ID that is not in `MODEL_MAP`. |
 | `MODEL_MAP` | *empty* | Comma-separated `gemini=upstream` pairs. |
-| `MAX_OUTPUT_TOKENS` | `32000` | Clamp applied to `generationConfig.maxOutputTokens`. `0` disables it. |
+| `MAX_OUTPUT_TOKENS` | `100000` | Clamp applied to `generationConfig.maxOutputTokens`. Antigravity asks for 65535, so the default lets it through untouched. `0` disables the clamp. |
 | `CLOUD_CODE_PASSTHROUGH_BASE` | `https://cloudcode-pa.googleapis.com` | Google host for non-generation Cloud Code RPCs. |
 | `DEBUG` | *empty* | Any non-empty value dumps the last request bodies to `/tmp/agy-bridge-*.json`. |
 
@@ -63,9 +63,10 @@ Antigravity's own picker without touching the bridge.
 
 ## Output token clamp
 
-Antigravity requests `maxOutputTokens: 65535`. Some upstreams reject anything above their own limit,
-so the bridge clamps to `MAX_OUTPUT_TOKENS` by default. Raise it for long-form work, lower it to cap
-spend per turn, or set `0` to pass the client's value through untouched.
+Antigravity requests `maxOutputTokens: 65535`. The default `MAX_OUTPUT_TOKENS=100000` is above that,
+so the client's value is passed through unchanged; the setting exists to cap spend per turn or to
+satisfy a gateway with a lower limit. A request that omits the field is sent with
+`max_tokens = MAX_OUTPUT_TOKENS`. Set `0` to disable both behaviours.
 
 ## Debugging
 
