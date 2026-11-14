@@ -58,9 +58,12 @@ func DecodeNonStream(body io.Reader, modelVersion string) (Response, error) {
 			FinishReason string `json:"finish_reason"`
 		} `json:"choices"`
 		Usage struct {
-			PromptTokens     int `json:"prompt_tokens"`
-			CompletionTokens int `json:"completion_tokens"`
-			TotalTokens      int `json:"total_tokens"`
+			PromptTokens        int `json:"prompt_tokens"`
+			CompletionTokens    int `json:"completion_tokens"`
+			TotalTokens         int `json:"total_tokens"`
+			PromptTokensDetails struct {
+				CachedTokens int `json:"cached_tokens"`
+			} `json:"prompt_tokens_details"`
 		} `json:"usage"`
 	}
 	if err := json.NewDecoder(body).Decode(&out); err != nil {
@@ -88,9 +91,10 @@ func DecodeNonStream(body io.Reader, modelVersion string) (Response, error) {
 	}
 	if out.Usage.PromptTokens > 0 {
 		gr.UsageMetadata = &Usage{
-			PromptTokenCount:     out.Usage.PromptTokens,
-			CandidatesTokenCount: out.Usage.CompletionTokens,
-			TotalTokenCount:      out.Usage.TotalTokens,
+			PromptTokenCount:        out.Usage.PromptTokens,
+			CandidatesTokenCount:    out.Usage.CompletionTokens,
+			TotalTokenCount:         out.Usage.TotalTokens,
+			CachedContentTokenCount: out.Usage.PromptTokensDetails.CachedTokens,
 		}
 	}
 	return gr, nil
@@ -139,9 +143,12 @@ func PumpStream(body io.Reader, acc *Accum, emit EmitFunc) error {
 				FinishReason string `json:"finish_reason"`
 			} `json:"choices"`
 			Usage *struct {
-				PromptTokens     int `json:"prompt_tokens"`
-				CompletionTokens int `json:"completion_tokens"`
-				TotalTokens      int `json:"total_tokens"`
+				PromptTokens        int `json:"prompt_tokens"`
+				CompletionTokens    int `json:"completion_tokens"`
+				TotalTokens         int `json:"total_tokens"`
+				PromptTokensDetails struct {
+					CachedTokens int `json:"cached_tokens"`
+				} `json:"prompt_tokens_details"`
 			} `json:"usage"`
 		}
 		if err := json.Unmarshal([]byte(data), &chunk); err != nil {
@@ -149,9 +156,10 @@ func PumpStream(body io.Reader, acc *Accum, emit EmitFunc) error {
 		}
 		if chunk.Usage != nil && chunk.Usage.TotalTokens > 0 {
 			acc.Usage = &Usage{
-				PromptTokenCount:     chunk.Usage.PromptTokens,
-				CandidatesTokenCount: chunk.Usage.CompletionTokens,
-				TotalTokenCount:      chunk.Usage.TotalTokens,
+				PromptTokenCount:        chunk.Usage.PromptTokens,
+				CandidatesTokenCount:    chunk.Usage.CompletionTokens,
+				TotalTokenCount:         chunk.Usage.TotalTokens,
+				CachedContentTokenCount: chunk.Usage.PromptTokensDetails.CachedTokens,
 			}
 		}
 		for _, ch := range chunk.Choices {

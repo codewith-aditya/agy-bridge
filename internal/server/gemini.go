@@ -113,7 +113,11 @@ func (s *Server) handleGemini(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 
 	acc := translate.NewAccum()
+	var firstAt time.Time
 	emit := func(parts []translate.Part, finish string, usage *translate.Usage) {
+		if firstAt.IsZero() && len(parts) > 0 {
+			firstAt = time.Now()
+		}
 		frame, ok := sseFrame(parts, finish, usage, modelPart, nil)
 		if !ok {
 			return
@@ -141,9 +145,13 @@ func (s *Server) handleGemini(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	logf("%s model=%s stream %dms text=%d thoughts=%d tools=%d",
-		modelPart, model, time.Since(start).Milliseconds(),
-		acc.Text.Len(), acc.Thought.Len(), len(acc.ToolOrder))
+	ttft := int64(-1)
+	if !firstAt.IsZero() {
+		ttft = firstAt.Sub(start).Milliseconds()
+	}
+	logf("%s model=%s stream %dms ttft=%dms text=%d thoughts=%d tools=%d cached=%d",
+		modelPart, model, time.Since(start).Milliseconds(), ttft,
+		acc.Text.Len(), acc.Thought.Len(), len(acc.ToolOrder), cachedCount(acc))
 }
 
 // sseFrame renders one Gemini SSE frame. wrap, when non-nil, envelopes the

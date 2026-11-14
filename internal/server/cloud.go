@@ -111,7 +111,11 @@ func (s *Server) handleCloudGenerate(w http.ResponseWriter, r *http.Request, met
 	w.WriteHeader(http.StatusOK)
 
 	acc := translate.NewAccum()
+	var firstAt time.Time
 	emit := func(parts []translate.Part, finish string, usage *translate.Usage) {
+		if firstAt.IsZero() && len(parts) > 0 {
+			firstAt = time.Now()
+		}
 		frame, ok := sseFrame(parts, finish, usage, ce.Model, wrap)
 		if !ok {
 			return
@@ -139,8 +143,13 @@ func (s *Server) handleCloudGenerate(w http.ResponseWriter, r *http.Request, met
 		}
 	}
 
-	logf("[cloud] %s model=%s stream %dms text=%d tools=%d",
-		ce.Model, model, time.Since(start).Milliseconds(), acc.Text.Len(), len(acc.ToolOrder))
+	ttft := int64(-1)
+	if !firstAt.IsZero() {
+		ttft = firstAt.Sub(start).Milliseconds()
+	}
+	logf("[cloud] %s model=%s stream %dms ttft=%dms text=%d tools=%d cached=%d",
+		ce.Model, model, time.Since(start).Milliseconds(), ttft,
+		acc.Text.Len(), len(acc.ToolOrder), cachedCount(acc))
 }
 
 // forwardToGoogle proxies non-generation Cloud Code RPCs to Google with the

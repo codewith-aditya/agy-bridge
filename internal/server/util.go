@@ -15,6 +15,14 @@ func readAll(r *http.Request) ([]byte, error) {
 
 func equalFold(a, b string) bool { return strings.EqualFold(a, b) }
 
+// cachedCount reports provider-side prompt cache hits, if the upstream sent any.
+func cachedCount(acc *translate.Accum) int {
+	if acc.Usage == nil {
+		return 0
+	}
+	return acc.Usage.CachedContentTokenCount
+}
+
 // dumpRequest writes the last Gemini request pair to /tmp for debugging.
 func dumpRequest(raw, payload []byte) {
 	os.WriteFile("/tmp/agy-bridge-last-gemini.json", raw, 0o644)
