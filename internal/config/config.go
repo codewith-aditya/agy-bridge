@@ -56,7 +56,7 @@ type Config struct {
 func Load() Config {
 	return Config{
 		Listen:          envStr("LISTEN", "127.0.0.1:8198"),
-		UpstreamBase:    strings.TrimRight(envStr("UPSTREAM_BASE", "https://modelrouter.in/v1"), "/"),
+		UpstreamBase:    strings.TrimRight(envStr("UPSTREAM_BASE", "https://api.openai.com/v1"), "/"),
 		UpstreamKey:     envStr("UPSTREAM_KEY", ""),
 		CloudServerKey:  envStr("CLOUD_SERVER_KEY", ""),
 		DefaultModel:    envStr("DEFAULT_MODEL", ""),

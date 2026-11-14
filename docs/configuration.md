@@ -8,7 +8,7 @@ environment is enough.
 | Variable | Default | Description |
 | --- | --- | --- |
 | `LISTEN` | `127.0.0.1:8198` | Bind address. Use `0.0.0.0:8198` only behind a firewall or reverse proxy. |
-| `UPSTREAM_BASE` | `https://modelrouter.in/v1` | OpenAI-compatible base URL. No trailing slash; the bridge appends `/chat/completions`. |
+| `UPSTREAM_BASE` | `https://api.openai.com/v1` | OpenAI-compatible base URL. No trailing slash; the bridge appends `/chat/completions`. |
 | `UPSTREAM_KEY` | *empty* | Key used for the CLI route. Empty means the caller's `GEMINI_API_KEY` is used. |
 | `CLOUD_SERVER_KEY` | *empty* | Key used for the Cloud Code route, whose callers present a Google OAuth bearer. Falls back to `UPSTREAM_KEY`, then the caller's key. |
 | `DEFAULT_MODEL` | *empty* | Upstream model used for any Gemini model ID that is not in `MODEL_MAP`. |

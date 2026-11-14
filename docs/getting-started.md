@@ -3,7 +3,7 @@
 ## What you need
 
 - Go 1.22+ to build from source, or a released binary.
-- An OpenAI-compatible endpoint and a key for it: modelrouter.in, OpenAI, OpenRouter, Groq,
+- An OpenAI-compatible endpoint and a key for it: OpenAI, OpenRouter, Groq, Together, vLLM,
   Together, a local vLLM, Ollama, or anything else that exposes `/v1/chat/completions`.
 - Google Antigravity. The CLI is `agy`; the IDE is a separate download.
 

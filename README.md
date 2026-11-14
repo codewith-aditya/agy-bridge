@@ -1,7 +1,7 @@
 # agy-bridge
 
-Run **Google Antigravity** on any third-party LLM — modelrouter.in, OpenRouter, vLLM, Ollama, or
-anything else that speaks OpenAI `/chat/completions`.
+Run **Google Antigravity** on any third-party LLM — OpenRouter, Together, Groq, a local vLLM, Ollama,
+or anything else that speaks OpenAI `/chat/completions`.
 
 Antigravity is not hardwired to Gemini. Its CLI talks the public Gemini API and its IDE talks the
 Cloud Code API; both accept an endpoint override. `agy-bridge` sits on that override and translates
@@ -137,7 +137,7 @@ model picker keep working while generation is served by your upstream.
 | Variable | Default | Description |
 | --- | --- | --- |
 | `LISTEN` | `127.0.0.1:8198` | Bind address. |
-| `UPSTREAM_BASE` | `https://modelrouter.in/v1` | OpenAI-compatible base URL, no trailing slash. |
+| `UPSTREAM_BASE` | `https://api.openai.com/v1` | OpenAI-compatible base URL, no trailing slash. |
 | `UPSTREAM_KEY` | *empty* | Upstream key for the CLI route. Empty means the caller's `GEMINI_API_KEY` is used. |
 | `CLOUD_SERVER_KEY` | *empty* | Upstream key for the IDE route, whose caller presents a Google OAuth bearer instead of an upstream key. |
 | `DEFAULT_MODEL` | *empty* | Upstream model for any Gemini model ID not present in `MODEL_MAP`. |

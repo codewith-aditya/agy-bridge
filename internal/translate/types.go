@@ -1,6 +1,6 @@
 // Package translate converts between the Gemini generateContent schema
 // (spoken by Google Antigravity) and the OpenAI chat/completions schema
-// (spoken by modelrouter.in, OpenRouter, vLLM, Ollama and friends).
+// (spoken by OpenAI, OpenRouter, vLLM, Ollama and friends).
 package translate
 
 import "encoding/json"
