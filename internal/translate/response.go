@@ -72,6 +72,7 @@ func DecodeNonStream(body io.Reader, modelVersion string, dropThoughts bool) (Re
 			Message struct {
 				Content          string           `json:"content"`
 				ReasoningContent string           `json:"reasoning_content"`
+				Reasoning        string           `json:"reasoning"`
 				ToolCalls        []OpenAIToolCall `json:"tool_calls"`
 			} `json:"message"`
 			FinishReason string `json:"finish_reason"`
@@ -93,8 +94,12 @@ func DecodeNonStream(body io.Reader, modelVersion string, dropThoughts bool) (Re
 	if len(out.Choices) > 0 {
 		ch := out.Choices[0]
 		var parts []Part
-		if ch.Message.ReasoningContent != "" && !dropThoughts {
-			parts = append(parts, Part{Text: ch.Message.ReasoningContent, Thought: true})
+		reasoning := ch.Message.ReasoningContent
+		if reasoning == "" {
+			reasoning = ch.Message.Reasoning
+		}
+		if reasoning != "" && !dropThoughts {
+			parts = append(parts, Part{Text: reasoning, Thought: true})
 		}
 		if ch.Message.Content != "" {
 			parts = append(parts, Part{Text: ch.Message.Content})
