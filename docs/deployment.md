@@ -118,6 +118,49 @@ Terminate TLS at nginx (certbot or your existing certificates) and keep the brid
 bridge itself speaks plain HTTP by design; it has no certificate handling and should not be exposed
 directly.
 
+## Windows service
+
+Run the bridge without keeping a PowerShell window open. [NSSM](https://nssm.cc) wraps any
+executable as a Windows service:
+
+```powershell
+winget install NSSM.NSSM
+```
+
+```powershell
+nssm install agy-bridge "C:\tools\agy-bridge\agy-bridge.exe"
+nssm set agy-bridge AppEnvironmentExtra `
+  UPSTREAM_BASE=https://api.openai.com/v1 `
+  UPSTREAM_KEY=sk-... `
+  DEFAULT_MODEL=gpt-4o-mini `
+  LISTEN=127.0.0.1:8198
+nssm set agy-bridge AppStdout "C:\tools\agy-bridge\agy-bridge.log"
+nssm set agy-bridge AppStderr "C:\tools\agy-bridge\agy-bridge.log"
+nssm set agy-bridge Start SERVICE_AUTO_START
+nssm start agy-bridge
+```
+
+Check it:
+
+```powershell
+nssm status agy-bridge
+curl.exe -s http://127.0.0.1:8198/health
+```
+
+Useful commands:
+
+| Command | Effect |
+| --- | --- |
+| `nssm restart agy-bridge` | Restart after editing environment variables. |
+| `nssm edit agy-bridge` | GUI for the service settings. |
+| `nssm remove agy-bridge confirm` | Uninstall the service. |
+
+A scheduled task works too (Task Scheduler → Create Task → "Run whether user is logged on or not",
+trigger "At startup", action = the exe with arguments). NSSM is less fiddly.
+
+Firewall: if the bridge should stay local, do not add an inbound rule for 8198. If another machine
+must reach it, allow the port and set `LISTEN=0.0.0.0:8198`, ideally behind a TLS reverse proxy.
+
 ## Docker
 
 ```dockerfile

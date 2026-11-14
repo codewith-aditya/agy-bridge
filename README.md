@@ -57,6 +57,36 @@ UPSTREAM_BASE=https://api.openai.com/v1 UPSTREAM_KEY=sk-... DEFAULT_MODEL=gpt-4o
 GOOGLE_GEMINI_BASE_URL=http://127.0.0.1:8198 GEMINI_API_KEY=anything agy
 ```
 
+### Windows
+
+`make` is not available on Windows, so build directly and run it in its own terminal:
+
+```powershell
+winget install GoLang.Go
+git clone https://github.com/codewith-aditya/agy-bridge.git
+cd agy-bridge
+go build -trimpath -ldflags "-s -w" -o agy-bridge.exe ./cmd/agy-bridge
+```
+
+```powershell
+$env:UPSTREAM_BASE="https://api.openai.com/v1"
+$env:UPSTREAM_KEY="sk-..."
+$env:DEFAULT_MODEL="gpt-4o-mini"
+.\agy-bridge.exe
+```
+
+Then point the client at it from a second terminal:
+
+```powershell
+$env:GOOGLE_GEMINI_BASE_URL="http://127.0.0.1:8198"
+$env:GEMINI_API_KEY="unused"   # the bridge already has UPSTREAM_KEY
+agy
+```
+
+For the IDE, add `"jetski.cloudCodeUrl": "http://127.0.0.1:8198"` to its user settings. To keep the
+bridge running without an open terminal, register it with NSSM — see
+[docs/deployment.md](docs/deployment.md#windows-service).
+
 ### Antigravity IDE
 
 Add to the IDE's user `settings.json` (`%APPDATA%\Antigravity IDE\User\settings.json` on Windows,

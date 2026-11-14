@@ -43,6 +43,53 @@ curl -s http://127.0.0.1:8198/health
 {"ok":true,"upstream":"https://api.openai.com/v1","default_model":"gpt-4o-mini","model_map":{}}
 ```
 
+## Building and running on Windows
+
+`make` is a Unix tool, so build with `go` directly. Install Go first:
+
+```powershell
+winget install GoLang.Go
+```
+
+Open a new PowerShell window (so the toolchain lands on `PATH`), then:
+
+```powershell
+git clone https://github.com/codewith-aditya/agy-bridge.git
+cd agy-bridge
+go build -trimpath -ldflags "-s -w" -o agy-bridge.exe ./cmd/agy-bridge
+.\agy-bridge.exe -version
+```
+
+Run the bridge in its own terminal window:
+
+```powershell
+$env:UPSTREAM_BASE="https://api.openai.com/v1"
+$env:UPSTREAM_KEY="sk-..."
+$env:DEFAULT_MODEL="gpt-4o-mini"
+.\agy-bridge.exe
+```
+
+`$env:` variables live only for that window. To make them permanent, use `setx` and reopen the
+terminal:
+
+```powershell
+setx UPSTREAM_BASE "https://api.openai.com/v1"
+setx UPSTREAM_KEY "sk-..."
+setx DEFAULT_MODEL "gpt-4o-mini"
+```
+
+Check it from a second window:
+
+```powershell
+curl.exe -s http://127.0.0.1:8198/health
+```
+
+A busy port shows up as `listen tcp 127.0.0.1:8198: bind: Only one usage of each socket address`;
+change `LISTEN` or stop the other process.
+
+To run it in the background without an open window, register it as a service with NSSM — see
+[Deployment](deployment.md#windows-service).
+
 ## 3. Point the Antigravity CLI at it
 
 `~/.gemini/config/settings.json` (`%USERPROFILE%\.gemini\config\settings.json` on Windows):

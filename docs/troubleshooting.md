@@ -132,6 +132,36 @@ gemini-3.1-pro-preview model=gpt-4o stream 4684ms text=109 thoughts=45 tools=0
 If `thoughts` is large, you are paying for reasoning tokens. Map the picker's fast tier to a
 non-reasoning model.
 
+## Windows: `go` is not recognised
+
+**Cause.** Go was installed after the terminal was opened, or `PATH` was not refreshed.
+
+**Fix.** Close every PowerShell window and open a new one. Confirm with `go version`. If it still
+fails, add `C:\Program Files\Go\bin` to `PATH` manually.
+
+## Windows: environment variables disappear
+
+**Cause.** `$env:NAME="value"` only affects the current window.
+
+**Fix.** Use `setx NAME "value"` for anything permanent, then open a new terminal. A service started
+by NSSM does not see `setx` values set for your user, so pass them with `nssm set ... 
+AppEnvironmentExtra` instead.
+
+## Windows: `bind: Only one usage of each socket address`
+
+**Cause.** Port 8198 is already taken, usually a previous bridge window that was closed without
+stopping the process.
+
+**Fix.** `Get-Process agy-bridge | Stop-Process`, or `netstat -ano | findstr :8198` to find the PID
+and stop it. Or run on another port with `$env:LISTEN="127.0.0.1:8199"`.
+
+## Windows: `make` is not recognised
+
+**Cause.** `make` is a Unix build tool.
+
+**Fix.** Build directly: `go build -trimpath -ldflags "-s -w" -o agy-bridge.exe ./cmd/agy-bridge`.
+Everything the Makefile does is a single `go` command.
+
 ## Nothing here matches
 
 Collect: the surface (CLI or IDE), versions, the bridge log line, and the `DEBUG` dumps. Then open an
