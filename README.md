@@ -32,6 +32,12 @@ streaming and multi-turn loop intact.
 
 ## Quick start
 
+### Prebuilt binaries
+
+Download from [Releases](https://github.com/codewith-aditya/agy-bridge/releases) — Linux (x86-64,
+ARM64), Windows x86-64, macOS (Apple Silicon, Intel) — and verify with `SHA256SUMS`. No Go toolchain
+needed.
+
 ### Hosted
 
 ```bash
