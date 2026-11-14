@@ -37,15 +37,16 @@ jobs:
       - name: vet
         run: go vet ./...
 
-      # The race detector is run on Linux only: macOS runners intermittently
-      # abort with "dyld: missing LC_UUID load command" for race-enabled
-      # binaries, which is a runner issue rather than a project one.
+      # Tests run on Linux (with the race detector) and Windows. macOS runners
+      # intermittently abort any Go test binary with
+      # "dyld: missing LC_UUID load command", which is a runner image issue
+      # rather than a project one, so macOS is covered by the build step.
       - name: test (race)
         if: matrix.os == 'ubuntu-latest'
         run: go test ./... -race
 
       - name: test
-        if: matrix.os != 'ubuntu-latest'
+        if: matrix.os == 'windows-latest'
         run: go test ./...
 
       - name: build
