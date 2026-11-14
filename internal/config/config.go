@@ -33,6 +33,10 @@ type Config struct {
 	// CaptureCatalog dumps the raw fetchAvailableModels response, so the model
 	// catalog schema can be extended safely instead of guessed.
 	CaptureCatalog bool
+	// DropThoughts stops forwarding reasoning deltas. Reasoning models often
+	// narrate raw JSON tool syntax, which renders as noise in the client's
+	// thinking panel.
+	DropThoughts bool
 }
 
 // Load reads the environment into a Config.
@@ -48,6 +52,7 @@ func Load() Config {
 		Debug:           envStr("DEBUG", "") != "",
 		PassthroughBase: strings.TrimRight(envStr("CLOUD_CODE_PASSTHROUGH_BASE", "https://cloudcode-pa.googleapis.com"), "/"),
 		CaptureCatalog:  envStr("CAPTURE_CATALOG", "") != "",
+		DropThoughts:    envStr("DROP_THOUGHTS", "") != "",
 	}
 }
 

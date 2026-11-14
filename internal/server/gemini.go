@@ -113,6 +113,7 @@ func (s *Server) handleGemini(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 
 	acc := translate.NewAccum()
+	acc.DropThoughts = s.Cfg.DropThoughts
 	var firstAt time.Time
 	emit := func(parts []translate.Part, finish string, usage *translate.Usage) {
 		if firstAt.IsZero() && len(parts) > 0 {

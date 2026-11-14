@@ -102,12 +102,14 @@ func DecodeNonStream(body io.Reader, modelVersion string) (Response, error) {
 
 // Accum collects a streamed OpenAI response and emits Gemini chunks.
 type Accum struct {
-	Text      strings.Builder
-	Thought   strings.Builder
-	ToolOrder []int
-	Tools     map[int]*OpenAIToolCall
-	Usage     *Usage
-	Finish    string
+	// DropThoughts suppresses reasoning deltas.
+	DropThoughts bool
+	Text         strings.Builder
+	Thought      strings.Builder
+	ToolOrder    []int
+	Tools        map[int]*OpenAIToolCall
+	Usage        *Usage
+	Finish       string
 }
 
 // NewAccum returns an empty accumulator.
@@ -169,7 +171,9 @@ func PumpStream(body io.Reader, acc *Accum, emit EmitFunc) error {
 					t = ch.Delta.Reasoning
 				}
 				acc.Thought.WriteString(t)
-				emit([]Part{{Text: t, Thought: true}}, "", nil)
+				if !acc.DropThoughts {
+					emit([]Part{{Text: t, Thought: true}}, "", nil)
+				}
 			}
 			if ch.Delta.Content != "" {
 				acc.Text.WriteString(ch.Delta.Content)
