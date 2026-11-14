@@ -33,6 +33,9 @@ type Config struct {
 	// CaptureCatalog dumps the raw fetchAvailableModels response, so the model
 	// catalog schema can be extended safely instead of guessed.
 	CaptureCatalog bool
+	// CatalogExtra lists model IDs to force into the picker even when the
+	// account tier does not return them, as "id|Display Name,id2|Name2".
+	CatalogExtra string
 	// CatalogLabelTemplate renders the picker label. "{name}" is the original
 	// display name, "{model}" the upstream model this deployment resolves to.
 	// Empty disables relabelling.
@@ -60,6 +63,7 @@ func Load() Config {
 		PassthroughBase: strings.TrimRight(envStr("CLOUD_CODE_PASSTHROUGH_BASE", "https://cloudcode-pa.googleapis.com"), "/"),
 		CaptureCatalog:  envStr("CAPTURE_CATALOG", "") != "",
 		CatalogLabels:   envStr("CATALOG_LABELS", "") != "",
+		CatalogExtra:    envStr("CATALOG_EXTRA", ""),
 		CatalogLabelTemplate: func() string {
 			if envStr("CATALOG_LABELS", "") == "" {
 				return ""

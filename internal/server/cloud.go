@@ -243,8 +243,10 @@ func (s *Server) forwardToGoogle(w http.ResponseWriter, r *http.Request, raw []b
 			os.WriteFile("/tmp/agy-bridge-catalog.json", body, 0o644)
 			logf("[catalog] captured %d bytes -> /tmp/agy-bridge-catalog.json", len(body))
 		}
-		if tpl := s.Cfg.CatalogLabelTemplate; tpl != "" {
-			body = relabelCatalog(body, s.Cfg.ResolveModel, tpl)
+		tpl := s.Cfg.CatalogLabelTemplate
+		extras := ParseExtras(s.Cfg.CatalogExtra)
+		if tpl != "" || len(extras) > 0 {
+			body = rewriteCatalog(body, s.Cfg.ResolveModel, tpl, extras)
 		}
 	}
 	logf("[passthrough] %s -> %d (%d bytes)", r.URL.Path, resp.StatusCode, len(body))
