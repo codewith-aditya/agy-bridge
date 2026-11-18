@@ -13,6 +13,7 @@ environment is enough.
 | `CLOUD_SERVER_KEY` | *empty* | Key used for the Cloud Code route, whose callers present a Google OAuth bearer. Falls back to `UPSTREAM_KEY`, then the caller's key. |
 | `DEFAULT_MODEL` | *empty* | Upstream model used for any Gemini model ID that is not in `MODEL_MAP`. |
 | `MODEL_MAP` | *empty* | Comma-separated `gemini=upstream` pairs. |
+| `MAX_REQUEST_MB` | `64` | Largest inbound request body, in MiB. A body over the cap is refused with `413` before it is buffered, so one oversized request cannot exhaust the process. Attachments are base64-encoded, hence the generous default. |
 | `MAX_OUTPUT_TOKENS` | `100000` | Clamp applied to `generationConfig.maxOutputTokens`. Antigravity asks for 65535, so the default lets it through untouched. `0` disables the clamp. |
 | `CLOUD_CODE_PASSTHROUGH_BASE` | `https://cloudcode-pa.googleapis.com` | Google host for non-generation Cloud Code RPCs. |
 | `DEBUG` | *empty* | Any non-empty value dumps the last request bodies to `/tmp/agy-bridge-*.json`. |

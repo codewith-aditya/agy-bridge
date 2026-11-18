@@ -21,6 +21,10 @@ type Config struct {
 	CloudServerKey string
 	// DefaultModel is the upstream model every unrecognised Gemini model maps to.
 	DefaultModel string
+	// MaxRequestBytes bounds one inbound request body, so a huge or malicious
+	// POST cannot exhaust memory. Attachments arrive base64-encoded, so the
+	// default is generous.
+	MaxRequestBytes int64
 	// MaxOutputTokens clamps maxOutputTokens. Antigravity asks for 65535, which
 	// some upstreams reject. 0 disables the clamp.
 	MaxOutputTokens int
@@ -60,6 +64,7 @@ func Load() Config {
 		UpstreamKey:     envStr("UPSTREAM_KEY", ""),
 		CloudServerKey:  envStr("CLOUD_SERVER_KEY", ""),
 		DefaultModel:    envStr("DEFAULT_MODEL", ""),
+		MaxRequestBytes: maxRequestBytes(envInt("MAX_REQUEST_MB", 64)),
 		MaxOutputTokens: envInt("MAX_OUTPUT_TOKENS", 100000),
 		ModelMap:        ParseModelMap(envStr("MODEL_MAP", "")),
 		Debug:           envStr("DEBUG", "") != "",
@@ -162,6 +167,15 @@ func envStr(k, def string) string {
 		return v
 	}
 	return def
+}
+
+// maxRequestBytes turns the configured MiB cap into bytes, refusing values that
+// would disable the bound.
+func maxRequestBytes(mb int) int64 {
+	if mb < 1 {
+		mb = 1
+	}
+	return int64(mb) * 1024 * 1024
 }
 
 func envInt(k string, def int) int {

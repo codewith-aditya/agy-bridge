@@ -56,12 +56,16 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handle(w http.ResponseWriter, r *http.Request) {
+	s.limitBody(w, r)
 	path := r.URL.Path
 
 	// Cloud Code RPCs that use a slash instead of a colon, e.g.
 	// GET /v1internal/cascadeNuxes. These are account/UI calls: forward them.
 	if i := strings.Index(path, "/v1internal/"); i >= 0 {
-		raw, _ := readAll(r)
+		raw, ok := s.readBody(w, r)
+		if !ok {
+			return
+		}
 		s.forwardToGoogle(w, r, raw)
 		return
 	}
@@ -72,9 +76,8 @@ func (s *Server) handle(w http.ResponseWriter, r *http.Request) {
 			writeError(w, http.StatusMethodNotAllowed, "POST required", "INVALID_ARGUMENT")
 			return
 		}
-		raw, err := readAll(r)
-		if err != nil {
-			writeError(w, http.StatusBadRequest, "read body: "+err.Error(), "INVALID_ARGUMENT")
+		raw, ok := s.readBody(w, r)
+		if !ok {
 			return
 		}
 		s.handleCloud(w, r, path[i+len("v1internal:"):], raw)
