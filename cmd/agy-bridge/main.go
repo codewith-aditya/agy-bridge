@@ -39,6 +39,9 @@ func main() {
 		Addr:              cfg.Listen,
 		Handler:           srv.Handler(),
 		ReadHeaderTimeout: 30 * time.Second,
+		// Long turns stream for minutes, so the read/write timeouts stay off;
+		// an idle keep-alive is the one wait worth bounding.
+		IdleTimeout: 120 * time.Second,
 	}
 	if err := httpSrv.ListenAndServe(); err != nil {
 		log.Fatal(err)

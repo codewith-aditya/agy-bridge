@@ -84,7 +84,7 @@ func (s *Server) handleCloudGenerate(w http.ResponseWriter, r *http.Request, met
 	logf("[cloud] %s model=%s -> upstream (stream=%v)", ce.Model, model, stream)
 
 	start := time.Now()
-	resp, err := s.post(key, payload, stream)
+	resp, err := s.post(r.Context(), key, payload, stream)
 	if err != nil {
 		writeError(w, http.StatusBadGateway, "upstream: "+err.Error(), "UNAVAILABLE")
 		return
@@ -95,7 +95,7 @@ func (s *Server) handleCloudGenerate(w http.ResponseWriter, r *http.Request, met
 		b, _ := io.ReadAll(io.LimitReader(resp.Body, 8192))
 		if bytes.Contains(b, []byte("reasoning_effort")) {
 			resp.Body.Close()
-			retry, rerr := s.retryWithoutEffort(key, payload, stream)
+			retry, rerr := s.retryWithoutEffort(r.Context(), key, payload, stream)
 			if rerr != nil {
 				writeError(w, http.StatusBadGateway, "upstream: "+rerr.Error(), "UNAVAILABLE")
 				return
@@ -211,7 +211,7 @@ func (s *Server) forwardToGoogle(w http.ResponseWriter, r *http.Request, raw []b
 	if len(raw) > 0 {
 		bodyReader = bytes.NewReader(raw)
 	}
-	req, err := http.NewRequest(method, target, bodyReader)
+	req, err := http.NewRequestWithContext(r.Context(), method, target, bodyReader)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, err.Error(), "INTERNAL")
 		return

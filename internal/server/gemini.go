@@ -2,6 +2,7 @@ package server
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -78,7 +79,7 @@ func (s *Server) handleGemini(w http.ResponseWriter, r *http.Request) {
 	}
 
 	start := time.Now()
-	resp, err := s.post(key, payload, stream)
+	resp, err := s.post(r.Context(), key, payload, stream)
 	if err != nil {
 		writeError(w, http.StatusBadGateway, "upstream: "+err.Error(), "UNAVAILABLE")
 		return
@@ -89,7 +90,7 @@ func (s *Server) handleGemini(w http.ResponseWriter, r *http.Request) {
 		b, _ := io.ReadAll(io.LimitReader(resp.Body, 8192))
 		if bytes.Contains(b, []byte("reasoning_effort")) {
 			resp.Body.Close()
-			if retry, err := s.retryWithoutEffort(key, payload, stream); err == nil {
+			if retry, err := s.retryWithoutEffort(r.Context(), key, payload, stream); err == nil {
 				resp = retry
 				logf("upstream rejected reasoning_effort; retried without it")
 			} else {
@@ -219,9 +220,11 @@ func sseFrame(parts []translate.Part, finish string, usage *translate.Usage, mod
 	return buf.Bytes(), true
 }
 
-// post forwards a chat/completions request to the upstream.
-func (s *Server) post(key string, payload []byte, stream bool) (*http.Response, error) {
-	req, err := http.NewRequest(http.MethodPost, s.Cfg.UpstreamBase+"/chat/completions", bytes.NewReader(payload))
+// post forwards a chat/completions request to the upstream. The request carries
+// the caller's context, so a client that walks away stops the upstream call
+// instead of leaving it to finish and bill.
+func (s *Server) post(ctx context.Context, key string, payload []byte, stream bool) (*http.Response, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, s.Cfg.UpstreamBase+"/chat/completions", bytes.NewReader(payload))
 	if err != nil {
 		return nil, err
 	}

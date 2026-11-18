@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -41,7 +42,7 @@ func splitInlineThink(tf *translate.ThinkFilter, parts []translate.Part) []trans
 // retryWithoutEffort re-posts the same request with reasoning_effort removed.
 // Some providers reject effort values they do not recognise with a hard 400, and
 // losing the whole turn over a hint is worse than ignoring the hint.
-func (s *Server) retryWithoutEffort(key string, payload []byte, stream bool) (*http.Response, error) {
+func (s *Server) retryWithoutEffort(ctx context.Context, key string, payload []byte, stream bool) (*http.Response, error) {
 	var body map[string]json.RawMessage
 	if err := json.Unmarshal(payload, &body); err != nil {
 		return nil, err
@@ -51,7 +52,7 @@ func (s *Server) retryWithoutEffort(key string, payload []byte, stream bool) (*h
 	if err != nil {
 		return nil, err
 	}
-	return s.post(key, stripped, stream)
+	return s.post(ctx, key, stripped, stream)
 }
 
 // cachedCount reports provider-side prompt cache hits, if the upstream sent any.
