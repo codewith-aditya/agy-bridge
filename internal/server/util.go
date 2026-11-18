@@ -3,6 +3,8 @@ package server
 import (
 	"context"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"os"
@@ -11,8 +13,32 @@ import (
 	"agy-bridge/internal/translate"
 )
 
+// readAll reads the request body. Callers bound it first with s.limitBody, so a
+// body over the cap fails here instead of filling memory.
 func readAll(r *http.Request) ([]byte, error) {
 	return io.ReadAll(r.Body)
+}
+
+// limitBody caps the body this request may carry for every route.
+func (s *Server) limitBody(w http.ResponseWriter, r *http.Request) {
+	r.Body = http.MaxBytesReader(w, r.Body, s.Cfg.MaxRequestBytes)
+}
+
+// readBody reads the body under the configured cap and answers the caller
+// itself when it cannot: 413 for a body over the cap, 400 for anything else.
+func (s *Server) readBody(w http.ResponseWriter, r *http.Request) ([]byte, bool) {
+	raw, err := readAll(r)
+	if err == nil {
+		return raw, true
+	}
+	var tooLarge *http.MaxBytesError
+	if errors.As(err, &tooLarge) {
+		writeError(w, http.StatusRequestEntityTooLarge,
+			fmt.Sprintf("request body is larger than %d MiB", s.Cfg.MaxRequestBytes>>20), "INVALID_ARGUMENT")
+		return nil, false
+	}
+	writeError(w, http.StatusBadRequest, "read body: "+err.Error(), "INVALID_ARGUMENT")
+	return nil, false
 }
 
 func equalFold(a, b string) bool { return strings.EqualFold(a, b) }

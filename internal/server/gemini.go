@@ -32,7 +32,10 @@ func (s *Server) handleGemini(w http.ResponseWriter, r *http.Request) {
 
 	switch action {
 	case "countTokens":
-		raw, _ := readAll(r)
+		raw, ok := s.readBody(w, r)
+		if !ok {
+			return
+		}
 		writeJSON(w, map[string]any{"totalTokens": len(raw) / 4})
 		return
 	case "generateContent", "streamGenerateContent":
@@ -46,9 +49,8 @@ func (s *Server) handleGemini(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	raw, err := readAll(r)
-	if err != nil {
-		writeError(w, http.StatusBadRequest, "read body: "+err.Error(), "INVALID_ARGUMENT")
+	raw, ok := s.readBody(w, r)
+	if !ok {
 		return
 	}
 	var g translate.Request
