@@ -19,9 +19,21 @@ type Server struct {
 }
 
 // New builds a Server. The HTTP client has no overall timeout because a single
-// agent turn can legitimately run for minutes.
+// agent turn can legitimately run for minutes, but every phase that must finish
+// before the first byte does have one, so a stalled upstream cannot pin a
+// request forever.
 func New(cfg config.Config) *Server {
-	return &Server{Cfg: cfg, Client: &http.Client{Timeout: 0}, seen: newRegistry()}
+	transport := &http.Transport{
+		Proxy: http.ProxyFromEnvironment,
+		// A connection that never completes its handshake or never answers
+		// is the failure that leaves an agent turn hanging with no output.
+		TLSHandshakeTimeout:   10 * time.Second,
+		ResponseHeaderTimeout: 60 * time.Second,
+		ExpectContinueTimeout: 1 * time.Second,
+		IdleConnTimeout:       90 * time.Second,
+		ForceAttemptHTTP2:     true,
+	}
+	return &Server{Cfg: cfg, Client: &http.Client{Transport: transport}, seen: newRegistry()}
 }
 
 // Handler returns the root mux.
