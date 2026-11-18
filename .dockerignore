@@ -1,0 +1,8 @@
+bin/
+agy-bridge
+agy-bridge.exe
+agy-bridge.new
+agy-bridge-mac-arm64
+*-arm64
+*.zip
+.git
